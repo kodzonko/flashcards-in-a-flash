@@ -5,6 +5,26 @@ from pathlib import Path
 import genanki
 import pandas as pd
 
+# Load the CSS styling
+CSS_PATH = Path(__file__).parent.parent / "style.css"
+CARD_STYLING = ""
+if CSS_PATH.exists():
+    with open(CSS_PATH, encoding="utf-8") as f:
+        CARD_STYLING = f.read()
+else:
+    # Default minimal styling if CSS file is not found
+    CARD_STYLING = """
+    .card {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        color: #333;
+        background-color: #f8f9fa;
+        margin: 20px;
+        padding: 20px;
+    }
+    hr#answer { margin: 20px 0; }
+    """
+
 # Define Anki note models with and without audio
 BASIC_MODEL = genanki.Model(
     model_id=random.randrange(1 << 30, 1 << 31),
@@ -16,10 +36,11 @@ BASIC_MODEL = genanki.Model(
     templates=[
         {
             "name": "Card 1",
-            "qfmt": "{{Question}}",
-            "afmt": "{{FrontSide}}<hr id='answer'>{{Answer}}",
+            "qfmt": '<div class="card basic"><div class="question">{{Question}}</div></div>',
+            "afmt": '<div class="card basic"><div class="question">{{Question}}</div><hr id="answer"><div class="answer">{{Answer}}</div></div>',
         },
     ],
+    css=CARD_STYLING,
 )
 
 BASIC_MODEL_WITH_AUDIO = genanki.Model(
@@ -33,10 +54,11 @@ BASIC_MODEL_WITH_AUDIO = genanki.Model(
     templates=[
         {
             "name": "Card 1",
-            "qfmt": "{{Question}}",
-            "afmt": "{{FrontSide}}<hr id='answer'>{{Answer}}<br>{{Audio}}",
+            "qfmt": '<div class="card basic"><div class="question">{{Question}}</div></div>',
+            "afmt": '<div class="card basic"><div class="question">{{Question}}</div><hr id="answer"><div class="answer">{{Answer}}</div><div>{{Audio}}</div></div>',
         },
     ],
+    css=CARD_STYLING,
 )
 
 # Bidirectional model with audio on language learning side
@@ -51,15 +73,16 @@ BIDIRECTIONAL_MODEL_WITH_AUDIO = genanki.Model(
     templates=[
         {
             "name": "Native to Learning",
-            "qfmt": "{{Native}}",
-            "afmt": "{{FrontSide}}<hr id='answer'>{{Learning}}<br>{{Audio}}",
+            "qfmt": '<div class="card bidirectional native-to-learning"><div class="question native">{{Native}}</div></div>',
+            "afmt": '<div class="card bidirectional native-to-learning"><div class="question native">{{Native}}</div><hr id="answer"><div class="answer learning">{{Learning}}</div><div>{{Audio}}</div></div>',
         },
         {
             "name": "Learning to Native",
-            "qfmt": "{{Learning}}",
-            "afmt": "{{FrontSide}}<hr id='answer'>{{Native}}",
+            "qfmt": '<div class="card bidirectional learning-to-native"><div class="question learning">{{Learning}}</div></div>',
+            "afmt": '<div class="card bidirectional learning-to-native"><div class="question learning">{{Learning}}</div><hr id="answer"><div class="answer native">{{Native}}</div></div>',
         },
     ],
+    css=CARD_STYLING,
 )
 
 
@@ -151,26 +174,28 @@ class AnkiDeck:
             else:
                 if bidirectional:
                     # When no audio is available but still want bidirectional cards
-                    # We use a similar model but without the audio field
-                    model = genanki.Model(
+                    # Use our predefined bidirectional model without audio
+                    bidirectional_model = genanki.Model(
                         model_id=random.randrange(1 << 30, 1 << 31),
                         name="Bidirectional Flashcard Model",
                         fields=[{"name": "Native"}, {"name": "Learning"}],
                         templates=[
                             {
                                 "name": "Native to Learning",
-                                "qfmt": "{{Native}}",
-                                "afmt": "{{FrontSide}}<hr id='answer'>{{Learning}}",
+                                "qfmt": '<div class="card bidirectional native-to-learning"><div class="question native">{{Native}}</div></div>',
+                                "afmt": '<div class="card bidirectional native-to-learning"><div class="question native">{{Native}}</div><hr id="answer"><div class="answer learning">{{Learning}}</div></div>',
                             },
                             {
                                 "name": "Learning to Native",
-                                "qfmt": "{{Learning}}",
-                                "afmt": "{{FrontSide}}<hr id='answer'>{{Native}}",
+                                "qfmt": '<div class="card bidirectional learning-to-native"><div class="question learning">{{Learning}}</div></div>',
+                                "afmt": '<div class="card bidirectional learning-to-native"><div class="question learning">{{Learning}}</div><hr id="answer"><div class="answer native">{{Native}}</div></div>',
                             },
                         ],
+                        css=CARD_STYLING,
                     )
                     note = genanki.Note(
-                        model=model, fields=[str(native_text), str(learning_text)]
+                        model=bidirectional_model,
+                        fields=[str(native_text), str(learning_text)],
                     )
                     self.deck.add_note(note)
                 else:
