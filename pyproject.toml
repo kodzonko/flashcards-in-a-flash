@@ -5,6 +5,42 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "click>=8.1.8",
+    "edge-tts>=7.0.1",
     "genanki>=0.13.1",
+    "pandas>=2.2.3",
+    "rich>=14.0.0",
+    "tqdm>=4.67.1",
+    "typer>=0.15.2",
 ]
+
+[dependency-groups]
+dev = [
+    "isort>=6.0.1",
+    "mypy>=1.15.0",
+    "pandas-stubs>=2.2.3.250308",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "ruff>=0.11.6",
+]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "N", "B", "C4", "PT", "RUF"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
