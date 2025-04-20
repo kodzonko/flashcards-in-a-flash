@@ -1,5 +1,6 @@
 import os
 import random
+import tempfile
 from pathlib import Path
 
 import genanki
@@ -100,6 +101,8 @@ class AnkiDeck:
             deck_id = random.randrange(1 << 30, 1 << 31)
         self.deck = genanki.Deck(deck_id, name)
         self.media_files = []
+        # Create a temporary directory to store audio files
+        self.temp_dir = tempfile.TemporaryDirectory()
 
     def create_from_dataframe(
         self,
@@ -141,13 +144,14 @@ class AnkiDeck:
             if has_audio and not pd.isna(row[audio_col]):
                 # Create a unique filename for the audio
                 audio_filename = f"audio_{idx}.{audio_format}"
+                audio_path = Path(self.temp_dir.name) / audio_filename
 
-                # Write audio bytes to a file
-                with open(audio_filename, "wb") as f:
+                # Write audio bytes to a file in the temporary directory
+                with open(audio_path, "wb") as f:
                     f.write(row[audio_col])
 
-                # Add the audio file to media files list
-                self.media_files.append(audio_filename)
+                # Add the audio file to media files list with the full path
+                self.media_files.append(str(audio_path))
 
                 if bidirectional:
                     # Create bidirectional note with audio on learning language side
@@ -216,28 +220,27 @@ class AnkiDeck:
         Returns:
             str: The path to the saved file
         """
-        # Ensure the output has the correct extension
-        if not str(output_path).lower().endswith(".apkg"):
-            output_path = f"{output_path}.apkg"
+        try:
+            # Ensure the output has the correct extension
+            if not str(output_path).lower().endswith(".apkg"):
+                output_path = f"{output_path}.apkg"
 
-        # Ensure the directory exists
-        output_dir = os.path.dirname(os.path.abspath(output_path))
-        if output_dir:
-            os.makedirs(output_dir, exist_ok=True)
+            # Ensure the directory exists
+            output_dir = os.path.dirname(os.path.abspath(output_path))
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
 
-        # Create the package with the deck and media files
-        package = genanki.Package(self.deck)
+            # Create the package with the deck and media files
+            package = genanki.Package(self.deck)
 
-        # Add media files if they exist
-        if self.media_files:
-            package.media_files = self.media_files
+            # Add media files if they exist
+            if self.media_files:
+                package.media_files = self.media_files
 
-        # Write the package to a file
-        package.write_to_file(output_path)
+            # Write the package to a file
+            package.write_to_file(output_path)
 
-        # Clean up temporary audio files
-        for media_file in self.media_files:
-            if os.path.exists(media_file):
-                os.remove(media_file)
-
-        return str(output_path)
+            return str(output_path)
+        finally:
+            # Clean up the temporary directory and its contents when done
+            self.temp_dir.cleanup()
