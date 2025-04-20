@@ -3,24 +3,18 @@ import random
 import tempfile
 from pathlib import Path
 
-import genanki
+import genanki  # type: ignore
 import pandas as pd
 
-# Load the CSS styling
-CSS_PATH = Path(__file__).parent.parent / "style.css"
-CARD_STYLING = ""
-if CSS_PATH.exists():
-    with open(CSS_PATH, encoding="utf-8") as f:
-        CARD_STYLING = f.read()
-else:
-    # Default minimal styling if CSS file is not found
-    CARD_STYLING = """
+CARD_STYLING = """
     .card {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        color: #333;
-        background-color: #f8f9fa;
-        margin: 20px;
+        font-family: Helvetica, sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
         padding: 20px;
     }
     hr#answer { margin: 20px 0; }
@@ -51,12 +45,15 @@ BASIC_MODEL_WITH_AUDIO = genanki.Model(
         {"name": "Question"},
         {"name": "Answer"},
         {"name": "Audio"},
+        {
+            "name": "IsLearnedLanguageOnFront"
+        },  # Flag to indicate if front has learned language
     ],
     templates=[
         {
             "name": "Card 1",
-            "qfmt": '<div class="card basic"><div class="question">{{Question}}</div></div>',
-            "afmt": '<div class="card basic"><div class="question">{{Question}}</div><hr id="answer"><div class="answer">{{Answer}}</div><div>{{Audio}}</div></div>',
+            "qfmt": '<div class="card basic"><div class="question">{{Question}}</div>{{#IsLearnedLanguageOnFront}}<div>{{Audio}}</div>{{/IsLearnedLanguageOnFront}}</div>',
+            "afmt": '<div class="card basic"><div class="question">{{Question}}</div><hr id="answer"><div class="answer">{{Answer}}</div>{{^IsLearnedLanguageOnFront}}<div>{{Audio}}</div>{{/IsLearnedLanguageOnFront}}</div>',
         },
     ],
     css=CARD_STYLING,
@@ -79,7 +76,7 @@ BIDIRECTIONAL_MODEL_WITH_AUDIO = genanki.Model(
         },
         {
             "name": "Learning to Native",
-            "qfmt": '<div class="card bidirectional learning-to-native"><div class="question learning">{{Learning}}</div></div>',
+            "qfmt": '<div class="card bidirectional learning-to-native"><div class="question learning">{{Learning}}</div><div>{{Audio}}</div></div>',
             "afmt": '<div class="card bidirectional learning-to-native"><div class="question learning">{{Learning}}</div><hr id="answer"><div class="answer native">{{Native}}</div></div>',
         },
     ],
