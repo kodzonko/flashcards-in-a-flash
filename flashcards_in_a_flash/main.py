@@ -1,48 +1,69 @@
-import click
 import os
-import genanki
+import pathlib
 import random
-from input_parser import parse_csv_file
+from typing import Optional
 
-# Define a model for our flashcards
-BASIC_MODEL = genanki.Model(
-    random.randrange(1 << 30, 1 << 31),
-    "Basic Model",
-    fields=[
-        {"name": "Front"},
-        {"name": "Back"},
-    ],
-    templates=[
-        {
-            "name": "Card 1",
-            "qfmt": "{{Front}}",
-            "afmt": '{{FrontSide}}<hr id="answer">{{Back}}',
-        },
-    ],
-)
+import genanki
+import typer
 
+from flashcards_in_a_flash.audio_generator import (
+    generate_audio,
+    list_supported_languages,
+)
+from flashcards_in_a_flash.input_parser import parse_csv
 
-@click.command()
-@click.option(
-    "--csv",
-    required=True,
-    type=click.Path(exists=True),
-    help="Path to the CSV file containing flashcard data",
-)
-@click.option(
-    "--deck",
-    required=True,
-    type=click.Path(),
-    help="Path where the Anki deck will be saved",
-)
-@click.option("--name", default="Flashcards", help="Name for the Anki deck")
-def main(csv, deck, name):
-    """Create Anki flashcards from a CSV file."""
-    try:
-        # Parse the CSV file
-        print(f"Processing CSV file: {csv}")
-        flashcards = parse_csv_file(csv)
+app = typer.Typer()
+
+@app.command()
+def main(
+    deck: Optional[pathlib.Path] = None,
+    csv: Optional[pathlib.Path] = None,
+    audio: bool = False,
+    list_languages: bool = False,
+):
+    """Create Anki flashcards from a source file."""
+    
+    # If list_languages flag is set, show available TTS languages and exit
+    if list_languages:
+        list_supported_languages()
+        return 0
+        
+    deck = typer.Option(
+        "anki_deck.apkg",
+        "--deck",
+        help="Path to the Anki deck (existing or new)",
+        writable=True,
+        resolve_path=True,
+        prompt="Path to the Anki deck (existing or new)",
+    )(deck)
+
+    csv = typer.Option(
+        None,
+        "--csv",
+        help="Path to the CSV input file",
+        exists=True)(csv)
+    audio = typer.Option(
+        False, "--audio", help="Generate audio for flashcards", is_flag=True
+    )(audio)
+    list_languages = typer.Option(
+        False, "--list-languages", help="List available TTS languages", is_flag=True
+    )(list_languages)
+    
+    flashcards = None
+    if csv is not None:
+        flashcards = parse_csv(csv)
         print(f"Found {len(flashcards)} flashcards in the CSV file")
+    if audio and flashcards is not None:
+        print("Generating audio for flashcards...")
+        generate_audio()
+
+        # Create a deck
+        deck_id = random.randrange(1 << 30, 1 << 31)
+        name = "Flashcards"  # Define a name for the deck
+        anki_deck = genanki.Deck(deck_id, name)
+        if audio:
+            print("Generating audio for flashcards...")
+            generate_audio()
 
         # Create a deck
         deck_id = random.randrange(1 << 30, 1 << 31)
@@ -67,11 +88,11 @@ def main(csv, deck, name):
         print(f"Deck successfully saved to: {deck}")
 
     except Exception as e:
-        click.echo(f"Error: {str(e)}", err=True)
-        return 1
+        typer.echo(f"Error: {str(e)}", err=True)
+        raise typer.Exit(code=1)
 
     return 0
 
 
 if __name__ == "__main__":
-    main()
+    app()
