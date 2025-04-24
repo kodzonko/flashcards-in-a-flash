@@ -37,7 +37,7 @@ def list_supported_languages() -> None:
     console.print(table)
 
 
-async def generate_audio(text: str, locale: str) -> bytes:
+async def _generate_audio(text: str, locale: str) -> bytes:
     """Generate audio using Edge TTS."""
     voices = await edge_tts.VoicesManager.create()
     voice = voices.find(Locale=locale)
@@ -52,21 +52,41 @@ async def generate_audio(text: str, locale: str) -> bytes:
     return audio_data.getvalue()
 
 
-async def process_row(row, locale: str) -> bytes:
+async def _process_row(row, locale: str) -> bytes:
     """Process a single row of the DataFrame, generating audio."""
-    return await generate_audio(row["text"], locale)
+    return await _generate_audio(row["learning"], locale)
 
 
-async def process_dataframe_async(df: pd.DataFrame, locale: str) -> pd.DataFrame:
+def process_df(df: pd.DataFrame, locale: str) -> pd.DataFrame:
+    """Process a DataFrame, generating audio for each row.
+
+    Returns:
+        pd.DataFrame: The input DataFrame with an additional 'audio_data' column
+            containing the generated audio bytes.
+    """
+    results = []
+    indices = []
+
+    for i, row in tqdm(df.iterrows(), desc="Generating TTS", total=len(df)):
+        audio = asyncio.run(_process_row(row, locale))
+        results.append(audio)
+        indices.append(i)
+
+    df.loc[:, "audio"] = pd.Series(results, index=indices)
+    return df
+
+
+async def process_df_async(df: pd.DataFrame, locale: str) -> pd.DataFrame:
     """Process a DataFrame asynchronously, generating audio for each row.
 
     Returns:
-        pd.DataFrame: The input DataFrame with an additional 'audio_data' column containing the generated audio bytes.
+        pd.DataFrame: The input DataFrame with an additional 'audio_data' column
+            containing the generated audio bytes.
     """
     tasks = []
     indices = []
     for i, row in df.iterrows():
-        tasks.append(process_row(row, locale))
+        tasks.append(_process_row(row, locale))
         indices.append(i)
     results = await tqdm.gather(*tasks, desc="Generating TTS")
     df.loc[:, "audio"] = pd.Series(results, index=indices)

@@ -185,10 +185,6 @@ class AnkiDeck:
     def create(
         self,
         df: pd.DataFrame,
-        native_col: str = "native",
-        learning_col: str = "learning",
-        audio_col: str | None = "audio",
-        audio_format: str = "mp3",
         bidirectional: bool = True,
     ) -> Self:
         """Create an Anki deck from a DataFrame with questions, answers, and optional audio.
@@ -207,23 +203,23 @@ class AnkiDeck:
         Raises:
             ValueError: If required columns are not in the DataFrame
         """
-        required_cols = [native_col, learning_col]
+        required_cols = ["native", "learning"]
 
         for col in required_cols:
             if col not in df.columns:
                 raise ValueError(f"Required column '{col}' not found in DataFrame")
 
-        has_audio = audio_col is not None and audio_col in df.columns
+        has_audio = "audio" != None and "audio" in df.columns
 
         for idx, row in df.iterrows():
-            native_text = row[native_col]
-            learning_text = row[learning_col]
+            native_text = row["native"]
+            learning_text = row["learning"]
 
-            if has_audio and not pd.isna(row[audio_col]):
-                audio_filename = f"audio_{idx}.{audio_format}"
+            if has_audio and not pd.isna(row["audio"]):
+                audio_filename = f"audio_{idx}.mp3"
                 audio_path = Path(self.temp_dir.name) / audio_filename
                 with open(audio_path, "wb") as f:
-                    f.write(row[audio_col])
+                    f.write(row["audio"])
                 self.media_files.append(str(audio_path))
 
                 if bidirectional:
@@ -272,7 +268,7 @@ class AnkiDeck:
 
         Returns:
             DataFrame: A DataFrame containing the flashcard data in a format
-                      compatible with create_from_dataframe
+                       compatible with create_from_dataframe
 
         Raises:
             ValueError: If the file doesn't exist or isn't a valid .apkg file
@@ -381,14 +377,11 @@ class AnkiDeck:
 
             return pd.DataFrame(data)
 
-    def write(self, output_path: Path) -> Path:
+    def write(self, output_path: Path) -> None:
         """Save the deck to an Anki package file.
 
         Args:
             output_path: Path where to save the Anki package
-
-        Returns:
-            Path: The path to the saved file
         """
         try:
             if not output_path.parent.exists():
@@ -402,6 +395,5 @@ class AnkiDeck:
             if self.media_files:
                 package.media_files = self.media_files
             package.write_to_file(output_path)
-            return output_path
         finally:
             self.temp_dir.cleanup()
