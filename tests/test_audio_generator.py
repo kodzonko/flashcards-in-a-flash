@@ -18,7 +18,7 @@ async def test_process_dataframe_async():
 
     await process_dataframe_async(test_df, locale)
 
-    assert set(test_df.columns) == set(original_columns + ["audio"])
+    assert set(test_df.columns) == {*original_columns, "audio"}
 
     for _, row in test_df.iterrows():
         assert "audio" in row

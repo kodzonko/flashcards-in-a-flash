@@ -29,5 +29,5 @@ def parse_csv(csv_path: pathlib.Path) -> pd.DataFrame:
         if df.empty:
             raise ValueError(EMPTY_CSV_ERROR)
         return df.drop_duplicates()
-    except pd.errors.EmptyDataError:
-        raise ValueError(EMPTY_CSV_ERROR)
+    except pd.errors.EmptyDataError as e:
+        raise ValueError(EMPTY_CSV_ERROR) from e

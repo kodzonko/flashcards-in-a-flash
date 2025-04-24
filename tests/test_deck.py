@@ -42,8 +42,8 @@ async def test_create_polish_italian_deck_with_audio():
         deck = AnkiDeck(name="Polish-Italian Flashcards")
         deck.create_from_dataframe(
             df=df,
-            question_col="polish",
-            answer_col="italian",
+            native_col="polish",
+            learning_col="italian",
             audio_col="audio",
             bidirectional=True,
         )
