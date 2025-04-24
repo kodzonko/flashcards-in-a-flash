@@ -182,7 +182,7 @@ class AnkiDeck:
         # Create a temporary directory to store audio files
         self.temp_dir = tempfile.TemporaryDirectory()
 
-    def create_from_dataframe(
+    def create(
         self,
         df: pd.DataFrame,
         native_col: str = "native",
@@ -261,7 +261,127 @@ class AnkiDeck:
 
         return self
 
-    def save(self, output_path: Path) -> Path:
+    def read(self, apkg_path: Path) -> pd.DataFrame:
+        """Load an existing Anki package file into a DataFrame.
+
+        This function extracts notes from an Anki package and converts them into
+        a DataFrame that matches the schema used by create_from_dataframe.
+
+        Args:
+            apkg_path: Path to the Anki package (.apkg) file
+
+        Returns:
+            DataFrame: A DataFrame containing the flashcard data in a format
+                      compatible with create_from_dataframe
+
+        Raises:
+            ValueError: If the file doesn't exist or isn't a valid .apkg file
+            ImportError: If the required libraries aren't available
+        """
+        import os
+        import sqlite3
+        import tempfile
+        import zipfile
+
+        if not str(apkg_path).lower().endswith(".apkg"):
+            raise ValueError(f"File is not an Anki package: {apkg_path}")
+
+        # Create a temporary directory to extract the apkg
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Extract the apkg
+            with zipfile.ZipFile(apkg_path, "r") as zip_ref:
+                zip_ref.extractall(temp_dir)
+
+            # Connect to the SQLite database
+            db_path = os.path.join(temp_dir, "collection.anki2")
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # Get model information
+            cursor.execute("SELECT id, name FROM notetypes")
+            models = {model_id: name for model_id, name in cursor.fetchall()}
+
+            # Query to extract the notes
+            query = """
+            SELECT n.id, n.mid, n.flds, m.name as model_name
+            FROM notes n
+            JOIN notetypes m ON n.mid = m.id
+            ORDER BY n.id
+            """
+
+            cursor.execute(query)
+            notes = cursor.fetchall()
+
+            # Query to extract the media files
+            cursor.execute("SELECT * FROM media")
+            media_files = {row[0]: row[1] for row in cursor.fetchall()}
+
+            conn.close()
+
+            # Create a DataFrame to hold the flashcard data
+            data = []
+            media_dir = os.path.join(temp_dir, "media")
+
+            for note_id, model_id, flds, model_name in notes:
+                fields = flds.split("\x1f")  # Anki separator for fields
+                note_data = {}
+
+                # Process based on model type
+                if (
+                    "Basic Flashcard Model with Audio" in model_name
+                    and len(fields) >= 3
+                ):
+                    note_data["native"] = fields[0]
+                    note_data["learning"] = fields[1]
+
+                    # Extract audio filename from [sound:filename] tag
+                    audio_field = fields[2]
+                    import re
+
+                    audio_match = re.search(r"\[sound:(.*?)\]", audio_field)
+                    if audio_match and os.path.exists(
+                        os.path.join(media_dir, audio_match.group(1))
+                    ):
+                        audio_file = audio_match.group(1)
+                        audio_path = os.path.join(media_dir, audio_file)
+                        with open(audio_path, "rb") as f:
+                            note_data["audio"] = f.read()
+
+                elif "Basic Flashcard Model" in model_name and len(fields) >= 2:
+                    note_data["native"] = fields[0]
+                    note_data["learning"] = fields[1]
+
+                elif (
+                    "Bidirectional Flashcard Model with Audio" in model_name
+                    and len(fields) >= 3
+                ):
+                    note_data["native"] = fields[0]
+                    note_data["learning"] = fields[1]
+
+                    # Extract audio filename from [sound:filename] tag
+                    audio_field = fields[2]
+                    import re
+
+                    audio_match = re.search(r"\[sound:(.*?)\]", audio_field)
+                    if audio_match and os.path.exists(
+                        os.path.join(media_dir, audio_match.group(1))
+                    ):
+                        audio_file = audio_match.group(1)
+                        audio_path = os.path.join(media_dir, audio_file)
+                        with open(audio_path, "rb") as f:
+                            note_data["audio"] = f.read()
+
+                elif "Bidirectional Flashcard Model" in model_name and len(fields) >= 2:
+                    note_data["native"] = fields[0]
+                    note_data["learning"] = fields[1]
+
+                # Add the note data to our collection if we have the required fields
+                if "native" in note_data and "learning" in note_data:
+                    data.append(note_data)
+
+            return pd.DataFrame(data)
+
+    def write(self, output_path: Path) -> Path:
         """Save the deck to an Anki package file.
 
         Args:

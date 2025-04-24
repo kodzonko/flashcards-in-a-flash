@@ -40,14 +40,14 @@ async def test_create_polish_italian_deck_with_audio():
 
         # Create and save the deck
         deck = AnkiDeck(name="Polish-Italian Flashcards")
-        deck.create_from_dataframe(
+        deck.create(
             df=df,
             native_col="polish",
             learning_col="italian",
             audio_col="audio",
             bidirectional=True,
         )
-        saved_path = deck.save(output_path)
+        saved_path = deck.write(output_path)
 
         # Verify the deck was saved
         assert os.path.exists(saved_path)
