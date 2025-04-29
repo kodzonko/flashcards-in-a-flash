@@ -54,3 +54,63 @@ def merge_dataframes(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
             "Merged DataFrame contains empty cells. All cells must have values."
         )
     return merged_df
+
+
+def parse_pdf(pdf_path: pathlib.Path) -> pd.DataFrame:
+    """Parse a PDF file containing flashcard data.
+
+    Reads PDF file with question-answer pairs and converts them to flashcard format.
+
+    Args:
+        pdf_path: Path to the PDF file.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing 'native' and 'learning' columns.
+
+    Raises:
+        ValueError: If the PDF file is empty or contains no valid flashcard data.
+    """
+    # Placeholder for actual PDF parsing logic
+    raise NotImplementedError("PDF parsing not implemented yet.")
+
+
+def parse_image(image_path: pathlib.Path) -> pd.DataFrame:
+    """Parse an image file containing flashcard data.
+
+    Reads image file with question-answer pairs and converts them to flashcard format.
+
+    Args:
+        image_path: Path to the image file.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing 'native' and 'learning' columns.
+
+    Raises:
+        ValueError: If the image file is empty or contains no valid flashcard data.
+    """
+    # Placeholder for actual image parsing logic
+    raise NotImplementedError("Image parsing not implemented yet.")
+
+
+def parse_file(
+    file_path: pathlib.Path,
+) -> pd.DataFrame:
+    """Parse a file (CSV, PDF, or image) containing flashcard data.
+
+    Args:
+        file_path: Path to the file.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing 'native' and 'learning' columns.
+
+    Raises:
+        ValueError: If the file format is unsupported or contains no valid flashcard data.
+    """
+    if file_path.suffix == ".csv":
+        return parse_csv(file_path)
+    elif file_path.suffix in [".pdf", ".PDF"]:
+        return parse_pdf(file_path)
+    elif file_path.suffix in [".jpg", ".jpeg", ".png"]:
+        return parse_image(file_path)
+    else:
+        raise ValueError(f"Unsupported file format: {file_path.suffix}")
