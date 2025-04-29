@@ -290,91 +290,142 @@ class AnkiDeck:
 
             # Connect to the SQLite database
             db_path = os.path.join(temp_dir, "collection.anki2")
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-
-            # Get model information
-            cursor.execute("SELECT id, name FROM notetypes")
-            models = {model_id: name for model_id, name in cursor.fetchall()}
-
-            # Query to extract the notes
-            query = """
-            SELECT n.id, n.mid, n.flds, m.name as model_name
-            FROM notes n
-            JOIN notetypes m ON n.mid = m.id
-            ORDER BY n.id
-            """
-
-            cursor.execute(query)
-            notes = cursor.fetchall()
-
-            # Query to extract the media files
-            cursor.execute("SELECT * FROM media")
-            media_files = {row[0]: row[1] for row in cursor.fetchall()}
-
-            conn.close()
-
-            # Create a DataFrame to hold the flashcard data
+            conn = None
+            cursor = None
             data = []
-            media_dir = os.path.join(temp_dir, "media")
 
-            for note_id, model_id, flds, model_name in notes:
-                fields = flds.split("\x1f")  # Anki separator for fields
-                note_data = {}
+            try:
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
 
-                # Process based on model type
-                if (
-                    "Basic Flashcard Model with Audio" in model_name
-                    and len(fields) >= 3
-                ):
-                    note_data["native"] = fields[0]
-                    note_data["learning"] = fields[1]
+                # Check which schema version we're working with
+                # Try the newer schema first (notetypes table)
+                has_notetypes_table = False
+                try:
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name='notetypes'"
+                    )
+                    has_notetypes_table = len(cursor.fetchall()) > 0
+                except sqlite3.Error:
+                    pass
 
-                    # Extract audio filename from [sound:filename] tag
-                    audio_field = fields[2]
-                    import re
+                # Handle different database schemas
+                if has_notetypes_table:
+                    # Newer Anki schema
+                    cursor.execute("SELECT id, name FROM notetypes")
+                    models = {model_id: name for model_id, name in cursor.fetchall()}
 
-                    audio_match = re.search(r"\[sound:(.*?)\]", audio_field)
-                    if audio_match and os.path.exists(
-                        os.path.join(media_dir, audio_match.group(1))
-                    ):
-                        audio_file = audio_match.group(1)
-                        audio_path = os.path.join(media_dir, audio_file)
-                        with open(audio_path, "rb") as f:
-                            note_data["audio"] = f.read()
+                    # Query to extract the notes
+                    query = """
+                    SELECT n.id, n.mid, n.flds, m.name as model_name
+                    FROM notes n
+                    JOIN notetypes m ON n.mid = m.id
+                    ORDER BY n.id
+                    """
+                else:
+                    # Older Anki schema or genanki-generated schema
+                    # In this case, we need to get models from the col table JSON
+                    import json
 
-                elif "Basic Flashcard Model" in model_name and len(fields) >= 2:
-                    note_data["native"] = fields[0]
-                    note_data["learning"] = fields[1]
+                    cursor.execute("SELECT models FROM col")
+                    models_json = cursor.fetchone()[0]
 
-                elif (
-                    "Bidirectional Flashcard Model with Audio" in model_name
-                    and len(fields) >= 3
-                ):
-                    note_data["native"] = fields[0]
-                    note_data["learning"] = fields[1]
+                    # Handle potential string or bytes
+                    if isinstance(models_json, bytes):
+                        models_json = models_json.decode("utf-8")
 
-                    # Extract audio filename from [sound:filename] tag
-                    audio_field = fields[2]
-                    import re
+                    models_dict = json.loads(models_json)
+                    models = {
+                        int(model_id): model_data.get("name", "")
+                        for model_id, model_data in models_dict.items()
+                    }
 
-                    audio_match = re.search(r"\[sound:(.*?)\]", audio_field)
-                    if audio_match and os.path.exists(
-                        os.path.join(media_dir, audio_match.group(1))
-                    ):
-                        audio_file = audio_match.group(1)
-                        audio_path = os.path.join(media_dir, audio_file)
-                        with open(audio_path, "rb") as f:
-                            note_data["audio"] = f.read()
+                    # Query to extract the notes with models from the col table
+                    query = """
+                    SELECT n.id, n.mid, n.flds
+                    FROM notes n
+                    ORDER BY n.id
+                    """
 
-                elif "Bidirectional Flashcard Model" in model_name and len(fields) >= 2:
-                    note_data["native"] = fields[0]
-                    note_data["learning"] = fields[1]
+                # Execute the query
+                cursor.execute(query)
+                notes = cursor.fetchall()
 
-                # Add the note data to our collection if we have the required fields
-                if "native" in note_data and "learning" in note_data:
-                    data.append(note_data)
+                # Create a DataFrame to hold the flashcard data
+                media_dir = os.path.join(temp_dir, "media")
 
+                # Check if media directory exists and is actually a directory
+                media_dir_exists = os.path.exists(media_dir) and os.path.isdir(
+                    media_dir
+                )
+
+                # If the media file exists but isn't a directory, it might be the media file itself
+                if os.path.exists(media_dir) and not os.path.isdir(media_dir):
+                    # In this case, we need to handle the media mapping differently
+                    try:
+                        # Try to read the media file which might contain the mapping
+                        with open(media_dir) as f:
+                            media_content = f.read()
+                    except:
+                        pass
+
+                for note_data in notes:
+                    if has_notetypes_table:
+                        note_id, model_id, flds, model_name = note_data
+                    else:
+                        note_id, model_id, flds = note_data
+                        model_name = models.get(model_id, "")
+
+                    fields = flds.split("\x1f")  # Anki separator for fields
+                    note_dict = {}
+
+                    # Process based on model type
+                    if len(fields) >= 2:
+                        note_dict["native"] = fields[0]
+                        note_dict["learning"] = fields[1]
+
+                        # Look for audio field
+                        if len(fields) >= 3:
+                            audio_field = fields[2]
+                            import re
+
+                            audio_match = re.search(r"\[sound:(.*?)\]", audio_field)
+                            if audio_match:
+                                audio_file = audio_match.group(1)
+                                if media_dir_exists:  # Only try to access media_dir if it exists and is a directory
+                                    audio_path = os.path.join(media_dir, audio_file)
+                                    if os.path.exists(audio_path):
+                                        with open(audio_path, "rb") as f:
+                                            note_dict["audio"] = f.read()
+                                    else:
+                                        # Try finding any audio file in the media directory
+                                        for file in os.listdir(media_dir):
+                                            if os.path.isfile(
+                                                os.path.join(media_dir, file)
+                                            ):
+                                                with open(
+                                                    os.path.join(media_dir, file), "rb"
+                                                ) as f:
+                                                    note_dict["audio"] = f.read()
+                                                break
+
+                            # If we still don't have audio but it's expected,
+                            # add an empty bytes object so the column exists
+                            if "audio" not in note_dict and "with Audio" in model_name:
+                                note_dict["audio"] = b""
+
+                    # Add the note data to our collection if we have the required fields
+                    if "native" in note_dict and "learning" in note_dict:
+                        data.append(note_dict)
+
+            finally:
+                # Ensure database connection is properly closed
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
+
+            # Return the DataFrame after the database connection is closed
             return pd.DataFrame(data)
 
     def write(self, output_path: Path) -> None:

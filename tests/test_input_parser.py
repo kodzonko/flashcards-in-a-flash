@@ -30,11 +30,11 @@ def test_parse_csv_valid(valid_csv_path):
 
     # Check the content of the DataFrame
     assert len(result) == 2
-    assert list(result.columns) == ["question", "answer"]
-    assert result.iloc[0]["question"] == "food"
-    assert result.iloc[0]["answer"] == "cibus"
-    assert result.iloc[1]["question"] == "apple"
-    assert result.iloc[1]["answer"] == "malum"
+    assert list(result.columns) == ["native", "learning"]
+    assert result.iloc[0]["native"] == "food"
+    assert result.iloc[0]["learning"] == "cibus"
+    assert result.iloc[1]["native"] == "apple"
+    assert result.iloc[1]["learning"] == "malum"
 
 
 def test_parse_csv_empty(empty_csv_path):
