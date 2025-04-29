@@ -54,6 +54,10 @@ line-ending = "auto"
 testpaths = ["tests"]
 python_files = "test_*.py"
 addopts = "--cov=flashcards_in_a_flash"
+filterwarnings = [
+    "ignore::RuntimeWarning:unittest.mock:2247",
+    "ignore::RuntimeWarning:sys:"
+]
 
 [tool.coverage.run]
 source = ["flashcards_in_a_flash"]
