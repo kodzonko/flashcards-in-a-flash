@@ -41,6 +41,6 @@ jobs:
       run: |
         uv pip install .[dev]
     
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
-        uv run pytest tests/ -v
+        uv run pytest --cov=flashcards_in_a_flash tests/ -v

@@ -4,10 +4,13 @@ A Python tool that generates Anki flashcards for language learning with audio pr
 
 ## Features
 
-- ✅ Generate flashcards from CSV files
-- ✅ Generate audio with correct pronunciation using Edge TTS
-- ✅ Create bidirectional cards (native-to-learning and learning-to-native)
-- ✅ Custom styling for flashcards with responsive design
+✅ Generate flashcards from CSV files
+
+✅ Generate audio with correct pronunciation using Edge TTS
+
+✅ Create bidirectional cards (native-to-learning and learning-to-native)
+
+✅ Custom styling for flashcards with responsive design
 
 ## Installation
 
