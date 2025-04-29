@@ -43,4 +43,9 @@ jobs:
     
     - name: Run tests with coverage
       run: |
-        uv run python -m pytest --cov=flashcards_in_a_flash tests/ -v
+        uv run python -m pytest --cov=flashcards_in_a_flash tests/ -v --cov-branch --cov-report=xml
+    
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,5 +1,8 @@
 # Flashcards in a Flash
 
+[![Tests](https://github.com/kodzonko/flashcards-in-a-flash/actions/workflows/run-tests.yml/badge.svg)](https://github.com/kodzonko/flashcards-in-a-flash/actions/workflows/run-tests.yml)
+[![codecov](https://codecov.io/gh/kodzonko/flashcards-in-a-flash/branch/master/graph/badge.svg)](https://codecov.io/gh/kodzonko/flashcards-in-a-flash)
+
 A Python tool that generates Anki flashcards for language learning with audio pronunciation support. Quickly create flashcards from CSV files with text-to-speech audio using Edge TTS.
 
 ## Features
