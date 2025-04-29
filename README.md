@@ -16,8 +16,11 @@ A Python tool that generates Anki flashcards for language learning with audio pr
 git clone https://github.com/yourusername/flashcards-in-a-flash.git
 cd flashcards-in-a-flash
 
-# Install dependencies
-pip install -e .
+# Install dependencies with UV (recommended)
+uv pip install -e .
+
+# Alternative: Install with pip
+# pip install -e .
 ```
 
 ## Usage
