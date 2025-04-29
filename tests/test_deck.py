@@ -114,11 +114,9 @@ async def test_create_polish_italian_deck_with_audio():
         assert isinstance(row["audio"], bytes)
         assert len(row["audio"]) > 0
 
-    output_path = (
-        pathlib.Path(__file__).parent
-        / "resources"
-        / "test_deck_bidirectional_audio.apkg"
-    )
+    resources_dir = pathlib.Path(__file__).parent / "resources"
+    resources_dir.mkdir(exist_ok=True)
+    output_path = resources_dir / "test_deck_bidirectional_audio.apkg"
 
     deck = AnkiDeck(name="Polish-Italian Flashcards")
     deck.create(
@@ -145,11 +143,11 @@ async def test_create_unidirectional_deck_with_audio():
     for _, row in df.iterrows():
         assert isinstance(row["audio"], bytes)
         assert len(row["audio"]) > 0
-    output_path = (
-        pathlib.Path(__file__).parent
-        / "resources"
-        / "test_deck_unidirectional_audio.apkg"
-    )
+
+    resources_dir = pathlib.Path(__file__).parent / "resources"
+    resources_dir.mkdir(exist_ok=True)
+    output_path = resources_dir / "test_deck_unidirectional_audio.apkg"
+
     deck = AnkiDeck(name="Polish-Italian Flashcards (One-way)")
     deck.create(
         df=df,
@@ -168,11 +166,11 @@ async def test_create_bidirectional_deck_without_audio():
         "learning": ["buona sera", "grazie", "prego"],
     }
     df = pd.DataFrame(data)
-    output_path = (
-        pathlib.Path(__file__).parent
-        / "resources"
-        / "test_deck_bidirectional_no_audio.apkg"
-    )
+
+    resources_dir = pathlib.Path(__file__).parent / "resources"
+    resources_dir.mkdir(exist_ok=True)
+    output_path = resources_dir / "test_deck_bidirectional_no_audio.apkg"
+
     deck = AnkiDeck(name="Polish-Italian Flashcards (No Audio)")
     deck.create(
         df=df,
