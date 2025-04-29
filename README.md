@@ -45,9 +45,30 @@ python -m flashcards_in_a_flash.main --list-languages
 Your CSV file should use semicolons (;) as separators and have a header row:
 
 ```
-question;answer
+native;learning
 food;cibus
 apple;malum
+```
+
+## Testing
+
+The project uses pytest for testing. You can run tests using `uv` (recommended) or directly with pytest:
+
+### Running All Tests with UV
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run tests with coverage report
+uv run pytest --cov
+```
+
+### Running Specific Tests
+
+```bash
+# Run specific test file
+uv run pytest tests/test_deck.py
 ```
 
 ## Roadmap

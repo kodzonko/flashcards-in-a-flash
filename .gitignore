@@ -13,4 +13,11 @@ wheels/
 .idea/
 .vscode/
 
+# Coverage files
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+.pytest_cache/
+
 tests/resources/
