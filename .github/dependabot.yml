@@ -8,8 +8,7 @@ updates:
     labels:
       - "dependencies"
       - "python"
-    # Allow up to 10 open pull requests for pip dependencies
-    
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
